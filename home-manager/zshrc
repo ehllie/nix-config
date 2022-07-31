@@ -1,0 +1,197 @@
+# Add _export ZDOTDIR="$HOME"/.config/zsh_ to _/etc/zsh/zshenv_
+# In order to have this file be sourced
+
+# XDG Base Directory Specification
+export XDG_DATA_HOME=$HOME/.local/share
+export XDG_CONFIG_HOME=$HOME/.config
+export XDG_STATE_HOME=$HOME/.local/state
+export XDG_CACHE_HOME=$HOME/.cache
+
+# For SDDM also set
+# /etc/sddm.conf.d/xorg_settings.conf:
+# [X11]
+# UserAuthFile=.local/share/sddm/Xauthority
+export XAUTHORITY="$XDG_DATA_HOME"/sddm/Xauthority
+
+# $HOME/.ghcup
+export GHCUP_USE_XDG_DIRS=true
+
+# $HOME/.stack
+export STACK_ROOT="$XDG_DATA_HOME"/stack
+
+# $HOME/.cabal
+export CABAL_CONFIG="$XDG_CONFIG_HOME"/cabal/config
+export CABAL_DIR="$XDG_DATA_HOME"/cabal
+
+# $HOME/.rustup
+export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
+
+# $HOME/.cargo
+export CARGO_HOME="$XDG_DATA_HOME"/cargo
+
+# $HOME/.python_history
+export PYTHONSTARTUP="${XDG_CONFIG_HOME}/python/pythonrc.py"
+
+# $HOME/.npmrc
+export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME"/npm/npmrc
+
+# $HOME/.pnpmrc
+export PNPM_HOME="$XDG_DATA_HOME/pnpm"
+
+# $HOME/.yarnrc
+alias yarn=yarn --use-yarnrc $XDG_CONFIG_HOME/yarn/config
+
+# $HOME/.lesshst
+export LESSHISTFILE="$XDG_CACHE_HOME"/less/history
+
+# $HOME/.kde4
+export KDEHOME="$XDG_CONFIG_HOME"/kde
+
+# $HOME/.gtkrc-2.0
+export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc
+
+# $HOME/.gnupg
+export GNUPGHOME="$XDG_DATA_HOME"/gnupg
+
+# $HOME/.nv
+export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
+
+# $HOME/wget-hsts
+alias wget=wget --hsts-file="$XDG_DATA_HOME/wget-hsts"
+
+# $HOME/.inputrc
+export INPUTRC="$XDG_CONFIG_HOME"/readline/inputrc
+
+# $HOME/.azure
+export AZURE_CONFIG_DIR="$XDG_DATA_HOME"/azure
+
+# $HOME/.aws
+export AWS_SHARED_CREDENTIALS_FILE="$XDG_CONFIG_HOME"/aws/credentials
+export AWS_CONFIG_FILE="$XDG_CONFIG_HOME"/aws/config
+
+# $HOME/.docker
+export DOCKER_CONFIG="$XDG_CONFIG_HOME"/docker
+
+# Enable VCS info in command prompt
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:*' formats ' <%F{cyan}%b%f>'
+setopt prompt_subst
+
+
+# Enable colors and change prompt:
+autoload -U colors && colors
+PS1="%B%{$fg[red]%}╭─[%{$fg[yellow]%}%n%{$fg[green]%}@%{$fg[blue]%}%M %{$fg[magenta]%}%~%{$reset_color%}\${vcs_info_msg_0_} %{$fg[red]%}]
+╰─>%{$reset_color%}%b $ "
+
+# History in cache directory:
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE=$XDG_CACHE_HOME/zsh/history
+
+#Load fpath from $XDG_CONFIG_HOME/zsh/zfunc
+fpath+=($XDG_CONFIG_HOME/zsh/zfunc)
+
+# Basic auto/tab complete:
+autoload -U compinit
+zstyle ':completion:*' menu select
+zmodload zsh/complist
+compinit
+_comp_options+=(globdots)		# Include hidden files.
+unsetopt completealiases		# Include aliases.
+
+
+# vi mode
+bindkey -v
+export KEYTIMEOUT=1
+
+# Use vim keys in tab complete menu:
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
+bindkey -v '^?' backward-delete-char
+
+# Change cursor shape for different vi modes.
+function zle-keymap-select {
+  if [[ ${KEYMAP} == vicmd ]] ||
+     [[ $1 = 'block' ]]; then
+    echo -ne '\e[1 q'
+  elif [[ ${KEYMAP} == main ]] ||
+       [[ ${KEYMAP} == viins ]] ||
+       [[ ${KEYMAP} = '' ]] ||
+       [[ $1 = 'beam' ]]; then
+    echo -ne '\e[5 q'
+  fi
+}
+zle -N zle-keymap-select
+zle-line-init() {
+    zle -K viins # initiate `vi insert` as keymap (can be removed if `bindkey -V` has been set elsewhere)
+    echo -ne "\e[5 q"
+}
+zle -N zle-line-init
+echo -ne '\e[5 q' # Use beam shape cursor on startup.
+preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
+
+# Use ranger to switch directories and bind it to ctrl-o
+rangercd () {
+    tmp="$(mktemp)"
+    ranger --choosedir="$tmp" "$@"
+    if [ -f "$tmp" ]; then
+        dir="$(cat "$tmp")"
+        rm -f "$tmp"
+        [ -d "$dir" ] && [ "$dir" != "$(pwd)" ] && cd "$dir"
+    fi
+}
+bindkey -s '^o' 'rangercd\n'
+
+# Edit line in vim with ctrl-e:
+autoload edit-command-line; zle -N edit-command-line
+bindkey '^e' edit-command-line
+
+# Load aliases, shortcuts, paths and xdg config files if exist.
+[ -f "$ZDOTDIR/shortcutrc" ] && source "$ZDOTDIR/shortcutrc"
+alias vim="nvim"
+alias config='git --git-dir=${XDG_CONFIG_HOME:-$HOME/.config}/dotfile-gitdir --work-tree=$HOME'
+alias lgconf='lazygit --git-dir=${XDG_CONFIG_HOME:-$HOME/.config}/dotfile-gitdir --work-tree=$HOME'
+APPEND_PATHS=(
+	"$XDG_DATA_HOME/bin"
+	"$XDG_DATA_HOME/cabal/bin"
+  "$HOME/.local/bin"
+)
+
+PREPEND_PATHS=(
+	"$XDG_DATA_HOME/cargo/bin"
+	"$XDG_DATA_HOME/pnpm"
+)
+
+for loc in "${APPEND_PATHS[@]}"
+do
+	case ":$PATH:" in
+		*:"$loc":*)
+			;;
+		*)
+			export PATH="$PATH:$loc"
+			;;
+	esac
+done
+
+for loc in "${PREPEND_PATHS[@]}"
+do
+	case ":$PATH:" in
+		*:"$loc":*)
+			;;
+		*)
+			export PATH="$loc:$PATH"
+			;;
+	esac
+done
+
+# Export ranger variables
+export EDITOR=nvim
+export VISUAL=nvim
+
+# Load zsh-syntax-highlighting; should be last.
+source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+
+
