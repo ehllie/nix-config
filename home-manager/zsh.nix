@@ -2,7 +2,7 @@
   {
     config.programs.zsh = {
       enable = true;
-      zdotdir = "$HOME/.config/zsh";
+      dotDir = ".config/zsh";
 
       initExtra = builtins.readFile ./zshrc;
   };
